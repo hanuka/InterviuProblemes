@@ -1,0 +1,1 @@
+When you clone the project make sure you try composer install so that the autoload works
