@@ -42,7 +42,7 @@ composer test
 - PHP 8.1+
 - Composer for dependency management
 - PHPUnit for testing
-- External APIs: [binlist.net](https://lookup.binlist.net/) and [exchangerate.host](https://api.exchangerate.host/latest)
+- External APIs: [binlist.net](https://lookup.binlist.net/) and [apilayer.com](https://api.apilayer.com/exchangerates_data/latest)
 
 
 ## 📄 License
