@@ -1,11 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
-use App\Repository\ResourceRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: ResourceRepository::class)]
+#[ORM\Entity]
+#[ORM\Table(name: 'resource')]
 class Resource
 {
     #[ORM\Id]
@@ -13,38 +17,37 @@ class Resource
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $name = null;
+    #[ORM\Column(length: 120)]
+    public string $name;
 
     #[ORM\Column]
-    private ?\DateTimeImmutable $createdAt = null;
+    public readonly \DateTimeImmutable $createdAt;
 
-    public function getId(): ?int
+    #[ORM\OneToMany(mappedBy: 'resource', targetEntity: Reservation::class, cascade: ['persist'], orphanRemoval: true)]
+    private Collection $reservations;
+
+    public function __construct(string $name)
+    {
+        $this->name = $name;
+        $this->createdAt = new \DateTimeImmutable();
+        $this->reservations = new ArrayCollection();
+    }
+
+    public function id(): ?int
     {
         return $this->id;
     }
 
-    public function getName(): ?string
+    public function reservations(): Collection
     {
-        return $this->name;
+        return $this->reservations;
     }
 
-    public function setName(?string $name): static
+    public function addReservation(Reservation $reservation): void
     {
-        $this->name = $name;
-
-        return $this;
-    }
-
-    public function getCreatedAt(): ?\DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
-    {
-        $this->createdAt = $createdAt;
-
-        return $this;
+        if (!$this->reservations->contains($reservation)) {
+            $this->reservations->add($reservation);
+            $reservation->resource = $this;
+        }
     }
 }
