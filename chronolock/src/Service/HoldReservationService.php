@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Service;
+namespace App\Service;
 
 use App\Entity\Reservation;
 use App\Entity\Resource;
 use App\Repository\ReservationRepository;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use DomainException;
-use DateTimeImmutable;
 
 final class HoldReservationService
 {

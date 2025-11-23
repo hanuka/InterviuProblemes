@@ -20,7 +20,8 @@ final class ReservationRepository extends ServiceEntityRepository
         Resource $resource,
         \DateTimeImmutable $start,
         \DateTimeImmutable $end,
-        \DateTimeImmutable $now
+        \DateTimeImmutable $now,
+        ?int $excludeReservationId = null
     ): bool {
         $qb = $this->createQueryBuilder('r');
 
@@ -44,6 +45,11 @@ final class ReservationRepository extends ServiceEntityRepository
             ->setParameter('now', $now)
             ->setParameter('confirmed', Reservation::STATUS_CONFIRMED)
             ->setParameter('held', Reservation::STATUS_HELD);
+
+        if ($excludeReservationId !== null) {
+            $qb->andWhere('r.id != :excludeId')
+                ->setParameter('excludeId', $excludeReservationId);
+        }
 
         return ((int) $qb->getQuery()->getSingleScalarResult()) > 0;
     }
