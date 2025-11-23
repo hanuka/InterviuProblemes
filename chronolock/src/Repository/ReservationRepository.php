@@ -53,4 +53,19 @@ final class ReservationRepository extends ServiceEntityRepository
 
         return ((int) $qb->getQuery()->getSingleScalarResult()) > 0;
     }
+
+    public function expireHeldReservations(\DateTimeImmutable $now): int
+    {
+        return $this->createQueryBuilder('r')
+            ->update()
+            ->set('r.status', ':expired')
+            ->where('r.status = :held')
+            ->andWhere('r.holdExpiresAt IS NOT NULL')
+            ->andWhere('r.holdExpiresAt <= :now')
+            ->setParameter('expired', Reservation::STATUS_EXPIRED)
+            ->setParameter('held', Reservation::STATUS_HELD)
+            ->setParameter('now', $now)
+            ->getQuery()
+            ->execute();
+    }
 }
