@@ -68,4 +68,37 @@ final class ReservationRepository extends ServiceEntityRepository
             ->getQuery()
             ->execute();
     }
+
+    public function findBusyIntervals(
+        Resource $resource,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+        \DateTimeImmutable $now
+    ): array {
+        $qb = $this->createQueryBuilder('r');
+
+        return $qb
+            ->andWhere('r.resource = :resource')
+            ->andWhere('r.startAt < :to')
+            ->andWhere('r.endAt > :from')
+            ->andWhere(
+                $qb->expr()->orX(
+                    'r.status = :confirmed',
+                    $qb->expr()->andX(
+                        'r.status = :held',
+                        'r.holdExpiresAt > :now'
+                    )
+                )
+            )
+            ->setParameter('resource', $resource)
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('now', $now)
+            ->setParameter('confirmed', Reservation::STATUS_CONFIRMED)
+            ->setParameter('held', Reservation::STATUS_HELD)
+
+            ->orderBy('r.startAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }
