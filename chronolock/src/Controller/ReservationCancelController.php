@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Service\CancelReservationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Lock\Exception\LockConflictedException;
 use Symfony\Component\Routing\Annotation\Route;
 use DomainException;
 use DateTimeImmutable;
@@ -22,6 +23,8 @@ final class ReservationCancelController extends AbstractController
     {
         try {
             $reservation = $this->cancelService->cancel($id);
+        } catch (LockConflictedException) {
+            return new JsonResponse(['error' => 'Resource is locked, please try again.'], 409);
         } catch (DomainException $e) {
             if ($e->getMessage() === 'Reservation not found') {
                 return new JsonResponse(['error' => $e->getMessage()], 404);

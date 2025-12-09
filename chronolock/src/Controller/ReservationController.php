@@ -7,10 +7,12 @@ namespace App\Controller;
 use App\Repository\ResourceRepository;
 use App\Service\HoldReservationService;
 use DateTimeImmutable;
+use DateTimeInterface;
 use DomainException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Lock\Exception\LockConflictedException;
 use Symfony\Component\Routing\Annotation\Route;
 
 final class ReservationController extends AbstractController
@@ -51,6 +53,8 @@ final class ReservationController extends AbstractController
 
         try {
             $reservation = $this->holdService->hold($resource, $startAt, $endAt);
+        } catch (LockConflictedException) {
+            return new JsonResponse(['error' => 'Resource is locked, please try again.'], 409);
         } catch (DomainException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 409);
         }
@@ -58,10 +62,10 @@ final class ReservationController extends AbstractController
         return new JsonResponse([
             'id'            => $reservation->id(),
             'resourceId'    => $reservation->resource->id(),
-            'startAt'       => $reservation->startAt->format(DateTimeImmutable::ATOM),
-            'endAt'         => $reservation->endAt->format(DateTimeImmutable::ATOM),
+            'startAt'       => $reservation->startAt->format(DateTimeInterface::ATOM),
+            'endAt'         => $reservation->endAt->format(DateTimeInterface::ATOM),
             'status'        => $reservation->status,
-            'holdExpiresAt' => $reservation->holdExpiresAt?->format(DateTimeImmutable::ATOM),
+            'holdExpiresAt' => $reservation->holdExpiresAt?->format(DateTimeInterface::ATOM),
         ], 201);
     }
 }

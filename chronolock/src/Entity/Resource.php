@@ -50,4 +50,9 @@ class Resource
             $reservation->resource = $this;
         }
     }
+
+    public function getId()
+    {
+        return $this->id;
+    }
 }

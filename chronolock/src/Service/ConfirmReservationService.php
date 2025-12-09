@@ -9,12 +9,15 @@ use App\Repository\ReservationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use DomainException;
 use DateTimeImmutable;
+use Symfony\Component\Lock\Exception\LockConflictedException;
+use Symfony\Component\Lock\LockFactory;
 
 final class ConfirmReservationService
 {
     public function __construct(
-        private EntityManagerInterface $em,
-        private ReservationRepository $reservations
+        private EntityManagerInterface $entityManager,
+        private ReservationRepository  $reservationRepository,
+        private LockFactory $chronolockResourceFactory,
     ) {}
 
     /**
@@ -22,41 +25,52 @@ final class ConfirmReservationService
      */
     public function confirm(int $reservationId): Reservation
     {
-        $now = new DateTimeImmutable();
+        $now = new DateTimeImmutable('now');
 
-        return $this->em->wrapInTransaction(function () use ($reservationId, $now) {
+        $reservation = $this->reservationRepository->find($reservationId);
+        if (!$reservation instanceof Reservation) {
+            throw new DomainException('Reservation not found');
+        }
 
-            /** @var Reservation|null $reservation */
-            $reservation = $this->reservations->find($reservationId);
+        $resource = $reservation->resource;
 
-            if (!$reservation) {
-                throw new DomainException('Reservation not found');
+        $lockKey = sprintf('resource_lock_%d', $resource->id());
+        $lock = $this->chronolockResourceFactory->createLock($lockKey, 5.0);
+
+        if (!$lock->acquire()) {
+            throw new LockConflictedException(sprintf('Resource %d is locked.', $resource->id()));
+        }
+
+        try {
+            if ($reservation->status === Reservation::STATUS_EXPIRED) {
+                throw new DomainException('Reservation expired');
             }
 
-            if ($reservation->status !== Reservation::STATUS_HELD) {
-                throw new DomainException('Only HELD reservations can be confirmed');
+            if ($reservation->status === Reservation::STATUS_CANCELED) {
+                throw new DomainException('Reservation canceled');
             }
 
-            if ($reservation->holdExpiresAt === null || $reservation->holdExpiresAt <= $now) {
-                throw new DomainException('Hold has expired');
+            if ($reservation->status === Reservation::STATUS_CONFIRMED) {
+                throw new DomainException('Reservation already confirmed');
             }
 
-            if ($this->reservations->hasOverlap(
-                $reservation->resource,
+            if ($this->reservationRepository->hasOverlap(
+                $resource,
                 $reservation->startAt,
                 $reservation->endAt,
                 $now,
-                $reservation->id()
+                $reservation->id(),
             )) {
-                throw new DomainException('Reservation overlaps and cannot be confirmed');
+                throw new DomainException('Reservation overlaps with an existing one.');
             }
 
             $reservation->status = Reservation::STATUS_CONFIRMED;
-
-            $this->em->persist($reservation);
-            $this->em->flush();
+            $this->entityManager->flush();
 
             return $reservation;
-        });
+
+        } finally {
+            $lock->release();
+        }
     }
 }

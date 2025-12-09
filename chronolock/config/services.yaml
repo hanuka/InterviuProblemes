@@ -12,6 +12,10 @@ services:
     bind:
       int $holdTtlSeconds: '%chronolock.hold_ttl_seconds%'
 
+  App\Service\CancelReservationService:
+    bind:
+      $chronolockResourceFactory: '@chronolock_resource.lock.factory'
+
   # makes classes in src/ available to be used as services
   App\:
     resource: '../src/'

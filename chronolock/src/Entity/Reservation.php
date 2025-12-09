@@ -74,4 +74,43 @@ class Reservation
     {
         return !($this->endAt <= $start || $this->startAt >= $end);
     }
+
+    public function setStatus(string $status): self
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function setHoldExpiresAt(\DateTimeImmutable $holdExpiresAt): self
+    {
+        $this->holdExpiresAt = $holdExpiresAt;
+        return $this;
+    }
+
+    public function isExpired(\DateTimeImmutable $now): bool
+    {
+        return $this->status === self::STATUS_EXPIRED
+            || $this->holdExpiresAt <= $now;
+    }
+
+    public function isCanceled(): bool
+    {
+        return $this->status === self::STATUS_CANCELED;
+    }
+
+    public function isConfirmed(): bool
+    {
+        return $this->status === self::STATUS_CONFIRMED;
+    }
+
+    public function isHeld(): bool
+    {
+        return $this->status === self::STATUS_HELD;
+    }
+
+    public function isHoldValid(\DateTimeImmutable $now): bool
+    {
+        return $this->isHeld() && $this->holdExpiresAt > $now;
+    }
 }
