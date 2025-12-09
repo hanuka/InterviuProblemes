@@ -1,0 +1,11 @@
+FROM php:8.1-fpm
+
+RUN apt-get update && apt-get install -y \
+    git unzip libicu-dev libzip-dev libpq-dev libxml2-dev libonig-dev \
+    && docker-php-ext-install intl pdo pdo_mysql zip
+
+# Redis PHP extension
+RUN pecl install redis && docker-php-ext-enable redis
+
+# Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
